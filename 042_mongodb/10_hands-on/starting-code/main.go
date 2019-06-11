@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/GoesToEleven/golang-web-dev/042_mongodb/10_hands-on/starting-code/models"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"html/template"
@@ -22,7 +23,7 @@ type session struct {
 }
 
 var tpl *template.Template
-var dbUsers = map[string]user{}       // user ID, user
+var dbUsers = map[string]models.User{}       // User ID, User
 var dbSessions = map[string]session{} // session ID, session
 var dbSessionsCleaned time.Time
 
@@ -40,7 +41,7 @@ func main() {
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/logout", logout)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe("localhost:8080", nil)
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
@@ -68,7 +69,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
-	var u user
+	var u models.User
 	// process form submission
 	if req.Method == http.MethodPost {
 		// get form values
@@ -97,7 +98,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
-		u = user{un, bs, f, l, r}
+		u = models.User{un, bs, f, l, r}
 		dbUsers[un] = u
 		// redirect
 		http.Redirect(w, req, "/", http.StatusSeeOther)
@@ -112,7 +113,7 @@ func login(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
-	var u user
+	var u models.User
 	// process form submission
 	if req.Method == http.MethodPost {
 		un := req.FormValue("username")
