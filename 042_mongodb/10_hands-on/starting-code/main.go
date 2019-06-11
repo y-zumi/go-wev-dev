@@ -9,29 +9,11 @@ import (
 	"time"
 )
 
-type user struct {
-	UserName string
-	Password []byte
-	First    string
-	Last     string
-	Role     string
-}
-
-type session struct {
-	un           string
-	lastActivity time.Time
-}
-
 var tpl *template.Template
-var dbUsers = map[string]models.User{}       // User ID, User
-var dbSessions = map[string]session{} // session ID, session
-var dbSessionsCleaned time.Time
-
-const sessionLength int = 30
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
-	dbSessionsCleaned = time.Now()
+	LastCleaned = time.Now()
 }
 
 func main() {
@@ -79,7 +61,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		l := req.FormValue("lastname")
 		r := req.FormValue("role")
 		// username taken?
-		if _, ok := dbUsers[un]; ok {
+		if _, ok := Users[un]; ok {
 			http.Error(w, "Username already taken", http.StatusForbidden)
 			return
 		}
@@ -89,9 +71,9 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			Name:  "session",
 			Value: sID.String(),
 		}
-		c.MaxAge = sessionLength
+		c.MaxAge = Length
 		http.SetCookie(w, c)
-		dbSessions[c.Value] = session{un, time.Now()}
+		Sessions[c.Value] = models.Session{un, time.Now()}
 		// store user in dbUsers
 		bs, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.MinCost)
 		if err != nil {
@@ -99,7 +81,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		u = models.User{un, bs, f, l, r}
-		dbUsers[un] = u
+		Users[un] = u
 		// redirect
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
@@ -119,7 +101,7 @@ func login(w http.ResponseWriter, req *http.Request) {
 		un := req.FormValue("username")
 		p := req.FormValue("password")
 		// is there a username?
-		u, ok := dbUsers[un]
+		u, ok := Users[un]
 		if !ok {
 			http.Error(w, "Username and/or password do not match", http.StatusForbidden)
 			return
@@ -136,9 +118,9 @@ func login(w http.ResponseWriter, req *http.Request) {
 			Name:  "session",
 			Value: sID.String(),
 		}
-		c.MaxAge = sessionLength
+		c.MaxAge = Length
 		http.SetCookie(w, c)
-		dbSessions[c.Value] = session{un, time.Now()}
+		Sessions[c.Value] = models.Session{un, time.Now()}
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
@@ -153,7 +135,7 @@ func logout(w http.ResponseWriter, req *http.Request) {
 	}
 	c, _ := req.Cookie("session")
 	// delete the session
-	delete(dbSessions, c.Value)
+	delete(Sessions, c.Value)
 	// remove the cookie
 	c = &http.Cookie{
 		Name:   "session",
@@ -163,7 +145,7 @@ func logout(w http.ResponseWriter, req *http.Request) {
 	http.SetCookie(w, c)
 
 	// clean up dbSessions
-	if time.Now().Sub(dbSessionsCleaned) > (time.Second * 30) {
+	if time.Now().Sub(LastCleaned) > (time.Second * 30) {
 		go cleanSessions()
 	}
 
