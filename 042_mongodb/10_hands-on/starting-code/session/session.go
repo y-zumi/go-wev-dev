@@ -23,7 +23,6 @@ func GetUser(w http.ResponseWriter, req *http.Request) models.User {
 			Name:  "session",
 			Value: sID.String(),
 		}
-
 	}
 	c.MaxAge = Length
 	http.SetCookie(w, c)
@@ -57,7 +56,7 @@ func AlreadyLoggedIn(w http.ResponseWriter, req *http.Request) bool {
 
 func CleanSessions() {
 	fmt.Println("BEFORE CLEAN") // for demonstration purposes
-	ShowSessions()              // for demonstration purposes
+	Show()                      // for demonstration purposes
 	for k, v := range Sessions {
 		if time.Now().Sub(v.LastActivity) > (time.Second * 30) {
 			delete(Sessions, k)
@@ -65,11 +64,11 @@ func CleanSessions() {
 	}
 	LastCleaned = time.Now()
 	fmt.Println("AFTER CLEAN") // for demonstration purposes
-	ShowSessions()             // for demonstration purposes
+	Show()                     // for demonstration purposes
 }
 
 // for demonstration purposes
-func ShowSessions() {
+func Show() {
 	fmt.Println("********")
 	for k, v := range Sessions {
 		fmt.Println(k, v.UserName)
