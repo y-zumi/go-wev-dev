@@ -2,17 +2,14 @@ package main
 
 import (
 	"github.com/GoesToEleven/golang-web-dev/042_mongodb/10_hands-on/starting-code/controllers"
-	"github.com/GoesToEleven/golang-web-dev/042_mongodb/10_hands-on/starting-code/session"
 	"html/template"
 	"net/http"
-	"time"
 )
 
 var tpl *template.Template
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
-	session.LastCleaned = time.Now()
 }
 
 func main() {

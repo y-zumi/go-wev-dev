@@ -10,7 +10,7 @@ import (
 
 var Users = map[string]models.User{}       // User ID, User
 var Sessions = map[string]models.Session{} // session ID, session
-var LastCleaned time.Time
+var LastCleaned time.Time = time.Now()
 
 const Length int = 30
 
@@ -54,7 +54,7 @@ func AlreadyLoggedIn(w http.ResponseWriter, req *http.Request) bool {
 	return ok
 }
 
-func CleanSessions() {
+func Clean() {
 	fmt.Println("BEFORE CLEAN") // for demonstration purposes
 	Show()                      // for demonstration purposes
 	for k, v := range Sessions {

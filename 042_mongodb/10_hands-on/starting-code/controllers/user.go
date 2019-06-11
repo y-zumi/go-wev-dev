@@ -139,7 +139,7 @@ func (c Controller) Logout(w http.ResponseWriter, req *http.Request) {
 
 	// clean up dbSessions
 	if time.Now().Sub(session.LastCleaned) > (time.Second * 30) {
-		go session.CleanSessions()
+		go session.Clean()
 	}
 
 	http.Redirect(w, req, "/login", http.StatusSeeOther)
