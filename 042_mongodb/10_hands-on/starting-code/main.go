@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/GoesToEleven/golang-web-dev/042_mongodb/10_hands-on/starting-code/models"
+	"github.com/GoesToEleven/golang-web-dev/042_mongodb/10_hands-on/starting-code/session"
 	"github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"html/template"
@@ -13,7 +14,7 @@ var tpl *template.Template
 
 func init() {
 	tpl = template.Must(template.ParseGlob("templates/*"))
-	LastCleaned = time.Now()
+	session.LastCleaned = time.Now()
 }
 
 func main() {
@@ -27,14 +28,14 @@ func main() {
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-	u := getUser(w, req)
-	showSessions() // for demonstration purposes
+	u := session.GetUser(w, req)
+	session.ShowSessions() // for demonstration purposes
 	tpl.ExecuteTemplate(w, "index.gohtml", u)
 }
 
 func bar(w http.ResponseWriter, req *http.Request) {
-	u := getUser(w, req)
-	if !alreadyLoggedIn(w, req) {
+	u := session.GetUser(w, req)
+	if !session.AlreadyLoggedIn(w, req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
@@ -42,12 +43,12 @@ func bar(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "You must be 007 to enter the bar", http.StatusForbidden)
 		return
 	}
-	showSessions() // for demonstration purposes
+	session.ShowSessions() // for demonstration purposes
 	tpl.ExecuteTemplate(w, "bar.gohtml", u)
 }
 
 func signup(w http.ResponseWriter, req *http.Request) {
-	if alreadyLoggedIn(w, req) {
+	if session.AlreadyLoggedIn(w, req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
@@ -61,7 +62,7 @@ func signup(w http.ResponseWriter, req *http.Request) {
 		l := req.FormValue("lastname")
 		r := req.FormValue("role")
 		// username taken?
-		if _, ok := Users[un]; ok {
+		if _, ok := session.Users[un]; ok {
 			http.Error(w, "Username already taken", http.StatusForbidden)
 			return
 		}
@@ -71,9 +72,9 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			Name:  "session",
 			Value: sID.String(),
 		}
-		c.MaxAge = Length
+		c.MaxAge = session.Length
 		http.SetCookie(w, c)
-		Sessions[c.Value] = models.Session{un, time.Now()}
+		session.Sessions[c.Value] = models.Session{un, time.Now()}
 		// store user in dbUsers
 		bs, err := bcrypt.GenerateFromPassword([]byte(p), bcrypt.MinCost)
 		if err != nil {
@@ -81,17 +82,17 @@ func signup(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		u = models.User{un, bs, f, l, r}
-		Users[un] = u
+		session.Users[un] = u
 		// redirect
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
-	showSessions() // for demonstration purposes
+	session.ShowSessions() // for demonstration purposes
 	tpl.ExecuteTemplate(w, "signup.gohtml", u)
 }
 
 func login(w http.ResponseWriter, req *http.Request) {
-	if alreadyLoggedIn(w, req) {
+	if session.AlreadyLoggedIn(w, req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
@@ -101,7 +102,7 @@ func login(w http.ResponseWriter, req *http.Request) {
 		un := req.FormValue("username")
 		p := req.FormValue("password")
 		// is there a username?
-		u, ok := Users[un]
+		u, ok := session.Users[un]
 		if !ok {
 			http.Error(w, "Username and/or password do not match", http.StatusForbidden)
 			return
@@ -118,24 +119,24 @@ func login(w http.ResponseWriter, req *http.Request) {
 			Name:  "session",
 			Value: sID.String(),
 		}
-		c.MaxAge = Length
+		c.MaxAge = session.Length
 		http.SetCookie(w, c)
-		Sessions[c.Value] = models.Session{un, time.Now()}
+		session.Sessions[c.Value] = models.Session{un, time.Now()}
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
-	showSessions() // for demonstration purposes
+	session.ShowSessions() // for demonstration purposes
 	tpl.ExecuteTemplate(w, "login.gohtml", u)
 }
 
 func logout(w http.ResponseWriter, req *http.Request) {
-	if !alreadyLoggedIn(w, req) {
+	if !session.AlreadyLoggedIn(w, req) {
 		http.Redirect(w, req, "/", http.StatusSeeOther)
 		return
 	}
 	c, _ := req.Cookie("session")
 	// delete the session
-	delete(Sessions, c.Value)
+	delete(session.Sessions, c.Value)
 	// remove the cookie
 	c = &http.Cookie{
 		Name:   "session",
@@ -145,8 +146,8 @@ func logout(w http.ResponseWriter, req *http.Request) {
 	http.SetCookie(w, c)
 
 	// clean up dbSessions
-	if time.Now().Sub(LastCleaned) > (time.Second * 30) {
-		go cleanSessions()
+	if time.Now().Sub(session.LastCleaned) > (time.Second * 30) {
+		go session.CleanSessions()
 	}
 
 	http.Redirect(w, req, "/login", http.StatusSeeOther)

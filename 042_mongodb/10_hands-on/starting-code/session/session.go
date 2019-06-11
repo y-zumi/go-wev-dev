@@ -1,4 +1,4 @@
-package main
+package session
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ var LastCleaned time.Time
 
 const Length int = 30
 
-func getUser(w http.ResponseWriter, req *http.Request) models.User {
+func GetUser(w http.ResponseWriter, req *http.Request) models.User {
 	// get cookie
 	c, err := req.Cookie("session")
 	if err != nil {
@@ -38,7 +38,7 @@ func getUser(w http.ResponseWriter, req *http.Request) models.User {
 	return u
 }
 
-func alreadyLoggedIn(w http.ResponseWriter, req *http.Request) bool {
+func AlreadyLoggedIn(w http.ResponseWriter, req *http.Request) bool {
 	c, err := req.Cookie("session")
 	if err != nil {
 		return false
@@ -55,9 +55,9 @@ func alreadyLoggedIn(w http.ResponseWriter, req *http.Request) bool {
 	return ok
 }
 
-func cleanSessions() {
+func CleanSessions() {
 	fmt.Println("BEFORE CLEAN") // for demonstration purposes
-	showSessions()              // for demonstration purposes
+	ShowSessions()              // for demonstration purposes
 	for k, v := range Sessions {
 		if time.Now().Sub(v.LastActivity) > (time.Second * 30) {
 			delete(Sessions, k)
@@ -65,11 +65,11 @@ func cleanSessions() {
 	}
 	LastCleaned = time.Now()
 	fmt.Println("AFTER CLEAN") // for demonstration purposes
-	showSessions()             // for demonstration purposes
+	ShowSessions()             // for demonstration purposes
 }
 
 // for demonstration purposes
-func showSessions() {
+func ShowSessions() {
 	fmt.Println("********")
 	for k, v := range Sessions {
 		fmt.Println(k, v.UserName)
